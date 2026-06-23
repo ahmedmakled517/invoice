@@ -7,7 +7,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">{{ $invoice->typeLabel() }} — {{ $invoice->number }}</h1>
-    <a href="{{ route('invoices.create') }}" class="btn btn-light btn-sm">+ مستند جديد</a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('invoices.pdf', $invoice) }}" target="_blank" class="btn btn-brand btn-sm">معاينة PDF</a>
+        <a href="{{ route('invoices.create') }}" class="btn btn-light btn-sm">+ مستند جديد</a>
+    </div>
 </div>
 
 <div class="card">

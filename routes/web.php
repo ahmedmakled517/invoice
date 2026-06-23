@@ -12,5 +12,8 @@ Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.st
 Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])
     ->whereNumber('invoice')
     ->name('invoices.show');
+Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])
+    ->whereNumber('invoice')
+    ->name('invoices.pdf');
 
 Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
