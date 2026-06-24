@@ -7,8 +7,6 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\InvoiceCalculator;
 use Illuminate\Support\Facades\DB;
-use Mpdf\Config\ConfigVariables;
-use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
 
 class InvoiceController extends Controller
@@ -83,22 +81,12 @@ class InvoiceController extends Controller
             mkdir($tempDir, 0775, true);
         }
 
-        $defaults = (new ConfigVariables())->getDefaults();
-        $fontDefaults = (new FontVariables())->getDefaults();
-
         $mpdf = new Mpdf([
             'mode'           => 'utf-8',
             'format'         => 'A4',
             'directionality' => 'rtl',
             'tempDir'        => $tempDir,
-            'default_font'   => 'amiri',
-            'fontDir'        => array_merge($defaults['fontDir'], [storage_path('fonts')]),
-            'fontdata'       => $fontDefaults['fontdata'] + [
-                'amiri' => [
-                    'R' => 'Amiri-Regular.ttf',
-                    'B' => 'Amiri-Bold.ttf',
-                ],
-            ],
+            'default_font'   => 'xbriyaz',
         ]);
 
         $mpdf->autoScriptToLang = true;

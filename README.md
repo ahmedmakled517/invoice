@@ -1,59 +1,196 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# نظام الفواتير — Arabic RTL Invoice / Quotation Module
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A focused Laravel assessment module for creating **Arabic (RTL)** invoices and quotations with
+live front‑end totals, authoritative **server‑side recalculation**, MySQL persistence, and an
+**Arabic PDF preview** generated with mPDF.
 
-## About Laravel
+> Scope is intentionally limited to the assessment requirements: no authentication, inventory,
+> payments, or full ERP features.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tech Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Layer | Choice |
+|-------|--------|
+| Framework | Laravel 12 |
+| Language | PHP 8.3 |
+| Database | MySQL 8 |
+| Front‑end | Blade + Alpine.js + Bootstrap 5 RTL (via CDN — no build step) |
+| PDF | mPDF (RTL, bundled **XB Riyaz** Arabic font) |
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Requirements
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP **8.3+** with `mbstring`, `gd`, `pdo_mysql` extensions (required by mPDF / Laravel)
+- Composer 2
+- MySQL 8 (or MariaDB)
 
-## Laravel Sponsors
+No Node/npm is required — the UI loads Bootstrap RTL and Alpine.js from a CDN.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## Installation
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+# 1. Clone
+git clone https://github.com/ahmedmakled517/invoice.git
+cd invoice
 
-## Contributing
+# 2. Install PHP dependencies
+composer install
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# 3. Environment
+cp .env.example .env
+php artisan key:generate
 
-## Code of Conduct
+# 4. Create the database (MySQL)
+#    CREATE DATABASE invoice CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+#    then set DB_DATABASE / DB_USERNAME / DB_PASSWORD in .env
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# 5. Migrate + seed sample data
+php artisan migrate --seed
 
-## Security Vulnerabilities
+# 6. Run
+php artisan serve
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Then open <http://127.0.0.1:8000> — the root redirects to the document creation page.
 
-## License
+### Sample data
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+`php artisan migrate --seed` creates 4 customers, one sample **invoice** (`INV-2026-0001`)
+and one sample **quotation** (`QUO-2026-0001`) so the screens have data immediately.
+
+---
+
+## Usage
+
+| Route | Description |
+|-------|-------------|
+| `GET /invoices/create` | Create a new invoice / quotation |
+| `POST /invoices` | Store (server recalculates + validates) |
+| `GET /invoices` | List all documents |
+| `GET /invoices/{id}` | View a document |
+| `GET /invoices/{id}/pdf` | Inline Arabic PDF preview |
+| `POST /customers` | Add a customer (used by the AJAX modal) |
+
+The create page supports: a customer dropdown, an **“add customer”** modal (saved via AJAX),
+dynamic item rows (add/remove), and a document‑type switch (invoice ↔ quotation).
+
+---
+
+## Calculation logic
+
+The same formula runs on the **front‑end** (Alpine, for instant UX feedback) and on the
+**server** (`App\Services\InvoiceCalculator`, the single source of truth). The discount is
+applied at the **invoice level** and tax is applied **per line**:
+
+```
+line_subtotal[i] = round(quantity[i] × unit_price[i], 2)
+items_subtotal   = Σ line_subtotal[i]
+
+discount_amount  = percent → round(items_subtotal × value / 100, 2)
+                   fixed   → min(value, items_subtotal)
+
+discount_ratio   = items_subtotal > 0 ? discount_amount / items_subtotal : 0
+
+# the invoice-level discount is distributed proportionally across lines BEFORE tax
+taxable[i]  = round(line_subtotal[i] × (1 − discount_ratio), 2)
+line_tax[i] = round(taxable[i] × tax_rate[i] / 100, 2)
+
+tax_total   = Σ line_tax[i]
+grand_total = items_subtotal − discount_amount + tax_total
+```
+
+Proportional allocation keeps the result correct even when lines have **different tax rates**.
+
+### Server‑side recalculation (important)
+
+Any totals sent by the browser are **ignored**. On `POST /invoices` the controller passes only
+the raw inputs (quantity, unit price, tax rate, discount) to `InvoiceCalculator`, recomputes
+every amount, and persists the invoice and its items inside a **database transaction**. This is
+covered by an automated test that submits tampered totals and asserts the stored values are the
+correct, recalculated ones.
+
+---
+
+## PDF generation
+
+- Built with **mPDF** in `InvoiceController@pdf`.
+- `directionality = rtl`, `autoArabic` and `autoScriptToLang` enabled for correct Arabic shaping
+  and bidi.
+- Uses mPDF’s bundled **XB Riyaz** Arabic font (no external font files needed).
+- The Blade view `resources/views/pdf/invoice.blade.php` is rendered to HTML and streamed
+  **inline** so the browser previews it directly.
+
+---
+
+## Validation
+
+`StoreInvoiceRequest` and `StoreCustomerRequest` (Form Requests) handle validation with
+**Arabic messages**, including: required customer that must `exist`, dates not before the issue
+date, at least one item, and per‑item quantity / price / tax‑rate rules. A percentage discount is
+additionally capped at `max:100`.
+
+---
+
+## Testing
+
+```bash
+php artisan test
+```
+
+The suite has **35 tests** covering every part of the project:
+
+| Test | Covers |
+|------|--------|
+| `Unit\InvoiceCalculatorTest` | calculation logic: totals, percent/fixed discount, capping, mixed tax rates |
+| `Feature\InvoiceModelTest` | model relations, `typeLabel`/`isQuotation`, casts, cascade delete |
+| `Feature\InvoicePageTest` | root redirect, index / create / show pages, 404 handling |
+| `Feature\InvoiceStoreTest` | server recalculation ignoring tampered totals, number generation, quotation, all validation rules |
+| `Feature\CustomerTest` | customer creation (JSON + form) and validation |
+| `Feature\InvoicePdfTest` | inline PDF generation |
+
+Tests run on an in‑memory SQLite database (configured in `phpunit.xml`).
+
+---
+
+## Project structure
+
+```
+app/
+  Http/Controllers/   InvoiceController.php · CustomerController.php
+  Http/Requests/      StoreInvoiceRequest.php · StoreCustomerRequest.php
+  Models/             Customer.php · Invoice.php · InvoiceItem.php
+  Services/           InvoiceCalculator.php
+database/
+  migrations/         customers · invoices · invoice_items
+  seeders/            CustomerSeeder.php · InvoiceSeeder.php
+resources/views/
+  layouts/app.blade.php
+  invoices/           create · index · show
+  pdf/invoice.blade.php
+config/invoice.php     company info · currency · default tax rate
+```
+
+---
+
+## Screenshots
+
+| Create page | Document view |
+|---|---|
+| ![Create](docs/screenshots/01-create.png) | ![Show](docs/screenshots/02-show.png) |
+
+| PDF preview | Documents list |
+|---|---|
+| ![PDF](docs/screenshots/03-pdf.png) | ![List](docs/screenshots/04-list.png) |
+
+---
+
+## Configuration notes
+
+Company details, currency label, and the default tax rate live in `config/invoice.php` and can be
+overridden via `.env` (`INVOICE_COMPANY_NAME`, `INVOICE_CURRENCY_LABEL`, `INVOICE_DEFAULT_TAX_RATE`, …).
+The default currency is SAR with a 15% VAT rate.

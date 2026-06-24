@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: amiri, sans-serif; font-size: 12px; color: #1f2937; }
+        body { font-family: xbriyaz, sans-serif; font-size: 12px; color: #1f2937; }
         .title { font-size: 22px; font-weight: bold; color: #2563eb; }
         .muted { color: #6b7280; font-size: 11px; line-height: 1.6; }
         .box { width: 100%; border-collapse: collapse; }
