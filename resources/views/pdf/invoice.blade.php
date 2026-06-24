@@ -1,10 +1,10 @@
 @php($cur = config('invoice.currency_label'))
 <!DOCTYPE html>
-<html>
+<html dir="rtl" lang="ar">
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: xbriyaz, sans-serif; font-size: 12px; color: #1f2937; }
+        body { font-family: xbriyaz, sans-serif; font-size: 12px; color: #1f2937; direction: rtl; }
         .title { font-size: 22px; font-weight: bold; color: #2563eb; }
         .muted { color: #6b7280; font-size: 11px; line-height: 1.6; }
         .box { width: 100%; border-collapse: collapse; }
@@ -22,11 +22,12 @@
         .notes { margin-top: 16px; font-size: 11px; color: #4b5563; }
     </style>
 </head>
-<body>
-    <table class="box">
+<body dir="rtl">
+    <table class="box" dir="rtl">
         <tr>
             <td style="width:60%">
-                <div class="title">{{ config('invoice.company.name') }}</div>
+                <img src="{{ str_replace('\\', '/', public_path('images/logo.png')) }}" width="52" height="52" style="vertical-align: middle;">
+                <span class="title" style="vertical-align: middle;">{{ config('invoice.company.name') }}</span>
                 <div class="muted">
                     الرقم الضريبي: {{ config('invoice.company.tax_number') }}<br>
                     {{ config('invoice.company.phone') }} — {{ config('invoice.company.email') }}<br>
@@ -56,7 +57,7 @@
         @if ($invoice->customer->address) {{ $invoice->customer->address }} @endif
     </div>
 
-    <table class="items">
+    <table class="items" dir="rtl">
         <thead>
             <tr>
                 <th style="width:30px">#</th>
@@ -81,7 +82,7 @@
         </tbody>
     </table>
 
-    <table class="totals" align="left">
+    <table class="totals" align="left" dir="rtl">
         <tr>
             <td class="label">الإجمالي قبل الخصم</td>
             <td class="val">{{ number_format($invoice->items_subtotal, 2) }} {{ $cur }}</td>

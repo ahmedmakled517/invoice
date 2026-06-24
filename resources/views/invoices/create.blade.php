@@ -19,6 +19,12 @@
      })"
      x-init="init()">
 
+    <div x-show="toast" x-transition x-cloak
+         style="position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 1080; min-width: 280px;"
+         class="alert alert-success shadow text-center">
+        <span x-text="toast"></span>
+    </div>
+
     @if ($errors->any())
         <div class="alert alert-danger">
             <strong>برجاء تصحيح الأخطاء التالية:</strong>
@@ -236,6 +242,7 @@
 
         return {
             cfg,
+            customers: cfg.customers || [],
             type: 'invoice',
             customerId: '',
             discountType: 'percent',
@@ -246,6 +253,7 @@
             savingCustomer: false,
             newCustomer: { name: '', email: '', phone: '', tax_number: '', address: '' },
             customerErrors: {},
+            toast: '',
 
             init() {
                 const old = cfg.old || {};
@@ -350,12 +358,19 @@
                         return;
                     }
 
+                    if (res.status === 419) {
+                        alert('انتهت صلاحية الجلسة. يرجى تحديث الصفحة ثم المحاولة مرة أخرى.');
+                        return;
+                    }
+
                     if (!res.ok) throw new Error('request failed');
 
                     const data = await res.json();
                     this.customers.push(data.customer);
                     this.customerId = data.customer.id;
                     this.showCustomerModal = false;
+                    this.toast = 'تمت إضافة العميل "' + data.customer.name + '" بنجاح';
+                    setTimeout(() => { this.toast = ''; }, 3000);
                 } catch (e) {
                     alert('حدث خطأ أثناء حفظ العميل، حاول مرة أخرى.');
                 } finally {

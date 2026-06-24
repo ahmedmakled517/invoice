@@ -6,16 +6,41 @@ use App\Http\Requests\StoreInvoiceRequest;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\InvoiceCalculator;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Mpdf\Mpdf;
 
 class InvoiceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $invoices = Invoice::with('customer')->latest()->paginate(15);
+        $search = trim((string) $request->query('search', ''));
 
-        return view('invoices.index', compact('invoices'));
+        $invoices = Invoice::with('customer')
+            ->when($search !== '', fn ($query) => $query->where(function ($q) use ($search) {
+                $q->where('number', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhere('issue_date', 'like', "%{$search}%")
+                    ->orWhere('grand_total', 'like', "%{$search}%")
+                    ->orWhereHas('customer', fn ($c) => $c
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('tax_number', 'like', "%{$search}%"));
+
+                if (str_contains('فاتورة', $search) || str_contains('invoice', mb_strtolower($search))) {
+                    $q->orWhere('type', 'invoice');
+                }
+
+                if (str_contains('عرض سعر', $search) || str_contains('quotation', mb_strtolower($search))) {
+                    $q->orWhere('type', 'quotation');
+                }
+            }))
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('invoices.index', compact('invoices', 'search'));
     }
 
     public function create()
